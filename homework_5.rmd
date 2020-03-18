@@ -1,0 +1,94 @@
+---
+title: "Homework_5"
+author: "Adam Grottoli"
+date: "March 5, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("C:/Users/Adam/Documents/R/R practice/BioStats/Homework_5")
+crime=read.csv('crimedata.csv')
+crime.test=read.csv('crimedata10.csv')
+library(rpart)
+library(rpart.plot)
+```
+
+##Question 2.
+```{r}
+crime.tree <- rpart(CrimeRate ~ Education + ExpenditureYear + StateSize + BelowWage + LabourForce + Youth, data = crime)
+```
+
+##Question 3.
+```{r}
+summary(crime.tree)
+```
+Expenditure per year was the most imprtant predictor variable for crime rate, followed by the proportion of young males, then by the proportion of families with a wage below half the median wage.
+
+##Question 4.
+```{r}
+rpart.plot(crime.tree, digits = 3, fallen.leaves = TRUE,tweak=1.3)
+```
+The first node shows that spending more money per capita on police force leads to a lower offense rate with the high and low group split at $77 per capita. The second node shows that if expenditure is high a smaller state size leads to a lower crime rate. The high and low group split at 2.3 million people. The third node shows that if expenditure is low, a lower proportion of male youth leads to a lower crime rate. The high and low group is split at 131 male youth per 1000 people.  
+
+##Question 5.
+The overall mean crime rate given by number of offences per 1 million people was 103. If expenditure was less than $77 per capita the mean was 84.5, and if expenditure was over $77 the mean was 120. If expenditure was less than 77 dollars and state size was below 2.3 million people than the mean was 72.5, and 97.6 if state size was greater than 2.3 million people. If expenditure was greater than $77 per capita, and there were less than 131 male youth per 1000 people, the mean was 105. If there were more than 131 male youth per 1000 people the mean was 133.
+
+##Question 6.
+The variables below wage, labour force, and education were excluded from the model. The rpart function builds a full tree without considering overfitting. The function then prunes the tree based such that 'cost' is minimised. Cost is the number of nodes and the error. Even though the variables that were excluded from the model still explained some of the variation in the data they led to a less parsimonious tree and were therefore pruned. 
+
+##Question 7.
+```{r}
+pre.crime <- predict(crime.tree, crime.test)
+```
+
+##Question 8.
+```{r}
+cor(pre.crime, crime.test[['CrimeRate']],method="pearson")
+```
+
+##Question 9.
+```{r}
+MAE <- function(actual, predicted)  {
+  mean(abs(actual - predicted))
+}
+
+MAE(predicted = pre.crime,actual = crime.test[["CrimeRate"]])
+```
+The overall mean crime rate of the test data was 102.07 offences per 1 million people adn the standard deviation was 39.28. The model was able to predict crime rate with an average error of 24.33 offences per 1 million people. This model performed well as it was able to predict crime within 1 standard deviation.
+
+##Question 10.
+```{r}
+pre.crime.test=crime.test[["CrimeRate"]]
+
+
+actual.crime=pre.crime.test
+
+
+MAE2 <- function(data,indices)  {
+  d<-data[indices]
+  return(mean(abs(actual.crime - d)))
+}
+
+ 
+library(boot)
+random.crime=boot(data=pre.crime.test, statistic=MAE2, R=1000)
+
+
+{hist(random.crime$t, main=FALSE, xlab= 'Mean Absolute Error')
+abline(v=mean(random.crime$t),col="red")}
+```
+Figure 2.Mean absolute error frequency over 1000 trials comparing random predictions to actual crime rates.
+Red line represents the mean of 44.48935.
+
+##Question 11.
+```{r}
+mean(random.crime$t)
+```
+The mean absolute error given by random predictions is 44.49, higher than the mean absolute error of the model, 24.33.
+
+```{r}
+p.value=length(which((random.crime$t<24.32924)==T))/1000
+p.value
+```
+The P value represents the proportion of times which the mean absolute error from the random predictions was less than the mean absolute error of the predictions made by the model. The p value of 0 means that our models predictions always did better than random predictions.
